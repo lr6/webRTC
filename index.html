@@ -1,0 +1,80 @@
+<head>
+    <meta charset="UTF-8">
+    <title>录屏并下载</title>
+</head>
+<body>
+<selection>
+    <video autoplay id = "player"></video>
+    <video loop id = "recordPlayer"></video>
+</selection>
+<div>
+    <button id = "startScreen">开启录屏</button>
+    <button id = "startCamera">开启摄像头</button>
+    <button id = "stop">结束</button>
+    <button id = "replay">回放</button>
+    <button id = "download">下载</button>
+</div>
+
+    <script>
+        const player = document.querySelector('#player');
+        const recordPlayer = document.querySelector('#recordPlayer');
+        let blobs = [], mediaRecorder;
+
+        // 窗口和屏幕是提示没权限，即使点了允许
+        // Mac  chrome 的标签页可以使用
+        async function record(recordType) {
+            const getMediaMethod = recordType === 'screen' ? 'getDisplayMedia' : 'getUserMedia';
+            const stream = await navigator.mediaDevices[getMediaMethod]({
+                video: {
+                    width: 500,
+                    height: 300,
+                    frameRate: 20
+                }
+            });
+            player.srcObject = stream;
+
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm'
+            });
+            mediaRecorder.ondataavailable = (e) => {
+                blobs.push(e.data);
+            };
+            mediaRecorder.start(100);
+        }
+
+        const downloadBtn = document.querySelector('#download');
+        const startScreenBtn = document.querySelector('#startScreen');
+        const startCameraBtn = document.querySelector('#startCamera');
+        const stopBtn = document.querySelector('#stop');
+        const replayBtn = document.querySelector('#replay');
+
+        startScreenBtn.addEventListener('click', () => {
+            record('screen');
+        });
+        startCameraBtn.addEventListener('click', () => {
+            record('camera');
+        });
+
+        stopBtn.addEventListener('click', () => {
+            mediaRecorder && mediaRecorder.stop();
+        });
+
+        replayBtn.addEventListener('click', () => {
+            const blob = new Blob(blobs, {type : 'video/webm'});
+            recordPlayer.src = URL.createObjectURL(blob);
+            recordPlayer.play();
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob(blobs, {type: 'video/webm'});
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.style.display = 'none';
+            a.download = 'record.webm';
+            a.click();
+        });
+    </script>
+</body>
+</html>
